@@ -52,17 +52,21 @@ audiodevopen(void)
 		error("snd_pcm_prepare capture");
 
     /// Setup mixer for volume control
-    snd_mixer_open(&mixer_handle, 0);
-    snd_mixer_attach(mixer_handle, card);
-    if (snd_mixer_selem_register(mixer_handle, NULL, NULL) <0)
+    if (snd_mixer_open(&mixer_handle, 0) < 0)
+        error("snd_mixer_open");
+    if (snd_mixer_attach(mixer_handle, card) < 0 )
+        error("snd_mixer_attach");
+    if (snd_mixer_selem_register(mixer_handle, NULL, NULL) < 0)
         error("snd_mixer_selem_register");
-    snd_mixer_load(mixer_handle);
-    snd_mixer_selem_id_alloca(&sid);
-    snd_mixer_selem_id_set_index(sid, 0);
-    snd_mixer_selem_id_set_name(sid, selem_name);
-    elem = snd_mixer_find_selem(mixer_handle, sid);
+    if (snd_mixer_load(mixer_handle) < 0)
+        error("snd_mixer_load");
+    snd_mixer_selem_id_alloca(&sid);                // allocate a mixer simple element identifier
+    snd_mixer_selem_id_set_index(sid, 0);           // set index part of a mixer simple element identifier
+    snd_mixer_selem_id_set_name(sid, selem_name);   // set name part of a mixer simple element identifier
+    elem = snd_mixer_find_selem(mixer_handle, sid); // find a mixer simple element with name selem_name
     // FIXME elem is NULL
     if (elem == NULL)
+        error("snd_mixer_find_selem");
         return
     snd_mixer_selem_get_playback_volume_range(elem, &mixer_min_vol, &mixer_max_vol);
 }
