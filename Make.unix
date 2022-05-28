@@ -12,15 +12,15 @@ OS=posix
 GUI=x11
 # LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm
 # LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm -lsndio
-# LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm -lasound      # works also with pulse-audio plugin for alsa devices
-LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm -lpulse-simple
+LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm -lasound      # works also with pulse-audio plugin for alsa devices
+# LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm -lpulse-simple
 LDFLAGS=$(PTHREAD)
 TARG=drawterm
 # AUDIO=none
 # AUDIO=unix
 # AUDIO=sndio
-# AUDIO=alsa
-AUDIO=pulse
+AUDIO=alsa
+# AUDIO=pulse
 
 all: default
 

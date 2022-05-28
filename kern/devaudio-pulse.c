@@ -1,4 +1,3 @@
-/* #include	<sndio.h> */
 #include	<pulse/simple.h>
 #include	<pulse/error.h>
 

@@ -16,9 +16,18 @@ enum
 	Bits = 16,
 };
 
+/// PCM device related
 static snd_pcm_t *playback;
 static snd_pcm_t *capture;
 static int speed = Rate;
+/// Mixer related
+static long mixer_min_vol;
+static long mixer_max_vol;
+static snd_mixer_t *mixer_handle;
+static snd_mixer_selem_id_t *sid;
+static snd_mixer_elem_t* elem;
+const char *card = "default";
+const char *selem_name = "Master";
 
 /* maybe this should return -1 instead of sysfatal */
 void
@@ -41,6 +50,21 @@ audiodevopen(void)
 
 	if(snd_pcm_prepare(capture) < 0)
 		error("snd_pcm_prepare capture");
+
+    /// Setup mixer for volume control
+    snd_mixer_open(&mixer_handle, 0);
+    snd_mixer_attach(mixer_handle, card);
+    if (snd_mixer_selem_register(mixer_handle, NULL, NULL) <0)
+        error("snd_mixer_selem_register");
+    snd_mixer_load(mixer_handle);
+    snd_mixer_selem_id_alloca(&sid);
+    snd_mixer_selem_id_set_index(sid, 0);
+    snd_mixer_selem_id_set_name(sid, selem_name);
+    elem = snd_mixer_find_selem(mixer_handle, sid);
+    // FIXME elem is NULL
+    if (elem == NULL)
+        return
+    snd_mixer_selem_get_playback_volume_range(elem, &mixer_min_vol, &mixer_max_vol);
 }
 
 void
@@ -48,27 +72,26 @@ audiodevclose(void)
 {
 	snd_pcm_drain(playback);
 	snd_pcm_close(playback);
-
 	snd_pcm_close(capture);
+    snd_mixer_close(mixer_handle);
 }
 
 void
 audiodevsetvol(int what, int left, int right)
 {
-	if(what == Vspeed){
-		speed = left;
-		return;
-	}
+	if (what == Vaudio && elem != NULL) {
+        snd_mixer_selem_set_playback_volume_all(elem, left * (mixer_max_vol - mixer_min_vol) / 100);
+    }
 }
 
 void
 audiodevgetvol(int what, int *left, int *right)
 {
-	if(what == Vspeed){
-		*left = *right = speed;
+	if (what == Vaudio && elem != NULL) {
+        int current_volume = snd_mixer_selem_get_playback_volume_range(elem, &mixer_min_vol, &mixer_max_vol);
+		*left = *right = current_volume;
 		return;
 	}
-
 	*left = *right = 100;
 }
 
