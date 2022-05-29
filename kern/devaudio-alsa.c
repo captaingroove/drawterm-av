@@ -21,13 +21,14 @@ static snd_pcm_t *playback;
 static snd_pcm_t *capture;
 static int speed = Rate;
 /// Mixer related
-static long mixer_min_vol;
-static long mixer_max_vol;
-static snd_mixer_t *mixer_handle;
-static snd_mixer_selem_id_t *sid;
-static snd_mixer_elem_t* elem;
-const char *card = "default";
-const char *selem_name = "Master";
+/* static long mixer_min_vol; */
+/* static long mixer_max_vol; */
+/* static snd_mixer_t *mixer_handle; */
+/* static snd_mixer_selem_id_t *sid; */
+/* static snd_mixer_elem_t* elem; */
+/* const char *mixer_card = "default"; */
+/* /1* const char *mixer_card = "PCH"; *1/ */
+/* const char *selem_name = "Master"; */
 
 /* maybe this should return -1 instead of sysfatal */
 void
@@ -51,24 +52,27 @@ audiodevopen(void)
 	if(snd_pcm_prepare(capture) < 0)
 		error("snd_pcm_prepare capture");
 
+    /// The hardware mixer should go in a separate device, maybe audioctl
+    /// /dev/volume should control the soft volume of each drawterm instance
+    ///
     /// Setup mixer for volume control
-    if (snd_mixer_open(&mixer_handle, 0) < 0)
-        error("snd_mixer_open");
-    if (snd_mixer_attach(mixer_handle, card) < 0 )
-        error("snd_mixer_attach");
-    if (snd_mixer_selem_register(mixer_handle, NULL, NULL) < 0)
-        error("snd_mixer_selem_register");
-    if (snd_mixer_load(mixer_handle) < 0)
-        error("snd_mixer_load");
-    snd_mixer_selem_id_alloca(&sid);                // allocate a mixer simple element identifier
-    snd_mixer_selem_id_set_index(sid, 0);           // set index part of a mixer simple element identifier
-    snd_mixer_selem_id_set_name(sid, selem_name);   // set name part of a mixer simple element identifier
-    elem = snd_mixer_find_selem(mixer_handle, sid); // find a mixer simple element with name selem_name
-    // FIXME elem is NULL
-    if (elem == NULL)
-        error("snd_mixer_find_selem");
-        return
-    snd_mixer_selem_get_playback_volume_range(elem, &mixer_min_vol, &mixer_max_vol);
+    /* if (snd_mixer_open(&mixer_handle, 0) < 0) */
+    /*     error("snd_mixer_open"); */
+    /* if (snd_mixer_attach(mixer_handle, mixer_card) < 0 ) */
+    /*     error("snd_mixer_attach"); */
+    /* if (snd_mixer_selem_register(mixer_handle, NULL, NULL) < 0) */
+    /*     error("snd_mixer_selem_register"); */
+    /* if (snd_mixer_load(mixer_handle) < 0) */
+    /*     error("snd_mixer_load"); */
+    /* snd_mixer_selem_id_alloca(&sid);                // allocate a mixer simple element identifier */
+    /* snd_mixer_selem_id_set_index(sid, 0);           // set index part of a mixer simple element identifier */
+    /* snd_mixer_selem_id_set_name(sid, selem_name);   // set name part of a mixer simple element identifier */
+    /* elem = snd_mixer_find_selem(mixer_handle, sid); // find a mixer simple element with name selem_name */
+    /* // FIXME elem is NULL */
+    /* if (elem == NULL) */
+    /*     error("snd_mixer_find_selem"); */
+    /*     return */
+    /* snd_mixer_selem_get_playback_volume_range(elem, &mixer_min_vol, &mixer_max_vol); */
 }
 
 void
@@ -77,25 +81,32 @@ audiodevclose(void)
 	snd_pcm_drain(playback);
 	snd_pcm_close(playback);
 	snd_pcm_close(capture);
-    snd_mixer_close(mixer_handle);
+    /// The hardware mixer should go in a separate device, maybe audioctl
+    /* snd_mixer_close(mixer_handle); */
 }
 
 void
 audiodevsetvol(int what, int left, int right)
 {
-	if (what == Vaudio && elem != NULL) {
-        snd_mixer_selem_set_playback_volume_all(elem, left * (mixer_max_vol - mixer_min_vol) / 100);
+	if (what == Vaudio) {
     }
+	/* if (what == Vaudio && elem != NULL) { */
+        /* snd_mixer_selem_set_playback_volume_all(elem, left * (mixer_max_vol - mixer_min_vol) / 100); */
+    /* } */
 }
 
 void
 audiodevgetvol(int what, int *left, int *right)
 {
-	if (what == Vaudio && elem != NULL) {
-        int current_volume = snd_mixer_selem_get_playback_volume_range(elem, &mixer_min_vol, &mixer_max_vol);
-		*left = *right = current_volume;
-		return;
-	}
+	if (what == Vaudio) {
+        *left = *right = 80;
+        return;
+    }
+	/* if (what == Vaudio && elem != NULL) { */
+        /* int current_volume = snd_mixer_selem_get_playback_volume_range(elem, &mixer_min_vol, &mixer_max_vol); */
+	/* 	*left = *right = current_volume; */
+	/* 	return; */
+	/* } */
 	*left = *right = 100;
 }
 
