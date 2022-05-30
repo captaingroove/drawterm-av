@@ -24,6 +24,7 @@ LIBS1=\
 	gui-$(GUI)/libgui.a\
 	libc/libc.a\
 	libip/libip.a\
+	# libav/libav.a\
 
 # stupid gcc
 LIBS=$(LIBS1) $(LIBS1) $(LIBS1) libmachdep.a
@@ -73,3 +74,6 @@ libip/libip.a:
 
 gui-$(GUI)/libgui.a:
 	(cd gui-$(GUI); $(MAKE))
+
+# libav/libav.a:
+# 	(cd libav; $(MAKE))
