@@ -34,7 +34,7 @@ Dev *devtab[] = {
 	&mntdevtab,
 	&lfddevtab,
 	&audiodevtab,
-	avdevtab,
+	&avdevtab,
 	&kbddevtab,
 	&cmddevtab,
 	&envdevtab,
