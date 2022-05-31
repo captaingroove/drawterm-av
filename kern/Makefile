@@ -10,6 +10,7 @@ OFILES=\
 	dev.$O\
 	devaudio.$O\
 	devaudio-$(AUDIO).$O\
+	devav.$O\
 	devcmd.$O\
 	devcons.$O\
 	devdraw.$O\
