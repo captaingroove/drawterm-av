@@ -139,7 +139,7 @@ avread(Chan *c, void *v, long n, vlong off)
 			aqunlock(&av);
 			nexterror();
 		}
-		/* n = avdevread(v, n); */
+		memset(a, 'A', n);
 		poperror();
 		aqunlock(&av);
 		break;
@@ -164,7 +164,7 @@ avwrite(Chan *c, void *vp, long n, vlong off)
 			aqunlock(&av);
 			nexterror();
 		}
-		/* n = avdevwrite(vp, n); */
+		print("Hello from AV driver!\n");
 		poperror();
 		aqunlock(&av);
 		break;
