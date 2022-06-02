@@ -1466,7 +1466,7 @@ drawmesg(Client *client, void *av, int n)
 			error("bad draw command");
 		/* new allocate: 'b' id[4] screenid[4] refresh[1] chan[4] repl[1] R[4*4] clipR[4*4] rrggbbaa[4] */
 		case 'b':
-			printmesg(fmt="LLbLbRRL", a, 0);
+			printmesg(fmt="LLbLbRRL", a, 1);
 			m = 1+4+4+1+4+1+4*4+4*4+4;
 			if(n < m)
 				error(Eshortdraw);
@@ -1560,7 +1560,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* set repl and clip: 'c' dstid[4] repl[1] clipR[4*4] */
 		case 'c':
-			printmesg(fmt="LbR", a, 0);
+			printmesg(fmt="LbR", a, 1);
 			m = 1+4+1+4*4;
 			if(n < m)
 				error(Eshortdraw);
@@ -1577,7 +1577,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* draw: 'd' dstid[4] srcid[4] maskid[4] R[4*4] P[2*4] P[2*4] */
 		case 'd':
-			printmesg(fmt="LLLRPP", a, 0);
+			printmesg(fmt="LLLRPP", a, 1);
 			m = 1+4+4+4+4*4+2*4+2*4;
 			if(n < m)
 				error(Eshortdraw);
@@ -1595,7 +1595,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* toggle debugging: 'D' val[1] */
 		case 'D':
-			printmesg(fmt="b", a, 0);
+			printmesg(fmt="b", a, 1);
 			m = 1+1;
 			if(n < m)
 				error(Eshortdraw);
@@ -1604,7 +1604,7 @@ drawmesg(Client *client, void *av, int n)
 		/* ellipse: 'e' dstid[4] srcid[4] center[2*4] a[4] b[4] thick[4] sp[2*4] alpha[4] phi[4]*/
 		case 'e':
 		case 'E':
-			printmesg(fmt="LLPlllPll", a, 0);
+			printmesg(fmt="LLPlllPll", a, 1);
 			m = 1+4+4+2*4+4+4+4+2*4+2*4;
 			if(n < m)
 				error(Eshortdraw);
@@ -1686,7 +1686,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* load character: 'l' fontid[4] srcid[4] index[2] R[4*4] P[2*4] left[1] width[1] */
 		case 'l':
-			printmesg(fmt="LLSRPbb", a, 0);
+			printmesg(fmt="LLSRPbb", a, 1);
 			m = 1+4+4+2+4*4+2*4+1+1;
 			if(n < m)
 				error(Eshortdraw);
@@ -1713,7 +1713,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* draw line: 'L' dstid[4] p0[2*4] p1[2*4] end0[4] end1[4] radius[4] srcid[4] sp[2*4] */
 		case 'L':
-			printmesg(fmt="LPPlllLP", a, 0);
+			printmesg(fmt="LPPlllLP", a, 1);
 			m = 1+4+2*4+2*4+4+4+4+4+2*4;
 			if(n < m)
 				error(Eshortdraw);
@@ -1752,7 +1752,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* attach to a named image: 'n' dstid[4] j[1] name[j] */
 		case 'n':
-			printmesg(fmt="Lz", a, 0);
+			printmesg(fmt="Lz", a, 1);
 			m = 1+4+1;
 			if(n < m)
 				error(Eshortdraw);
@@ -1784,7 +1784,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* name an image: 'N' dstid[4] in[1] j[1] name[j] */
 		case 'N':
-			printmesg(fmt="Lbz", a, 0);
+			printmesg(fmt="Lbz", a, 1);
 			m = 1+4+1+1;
 			if(n < m)
 				error(Eshortdraw);
@@ -1814,7 +1814,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* position window: 'o' id[4] r.min [2*4] screenr.min [2*4] */
 		case 'o':
-			printmesg(fmt="LPP", a, 0);
+			printmesg(fmt="LPP", a, 1);
 			m = 1+4+2*4+2*4;
 			if(n < m)
 				error(Eshortdraw);
@@ -1837,7 +1837,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* set compositing operator for next draw operation: 'O' op */
 		case 'O':
-			printmesg(fmt="b", a, 0);
+			printmesg(fmt="b", a, 1);
 			m = 1+1;
 			if(n < m)
 				error(Eshortdraw);
@@ -1848,7 +1848,7 @@ drawmesg(Client *client, void *av, int n)
 		/* polygon: 'p' dstid[4] n[2] end0[4] end1[4] radius[4] srcid[4] sp[2*4] p0[2*4] dp[2*2*n] */
 		case 'p':
 		case 'P':
-			printmesg(fmt="LslllLPP", a, 0);
+			printmesg(fmt="LslllLPP", a, 1);
 			m = 1+4+2+4+4+4+4+2*4;
 			if(n < m)
 				error(Eshortdraw);
@@ -1923,7 +1923,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* read: 'r' id[4] R[4*4] */
 		case 'r':
-			printmesg(fmt="LR", a, 0);
+			printmesg(fmt="LR", a, 1);
 			m = 1+4+4*4;
 			if(n < m)
 				error(Eshortdraw);
@@ -1949,7 +1949,7 @@ drawmesg(Client *client, void *av, int n)
 		/* stringbg: 'x' dstid[4] srcid[4] fontid[4] P[2*4] clipr[4*4] sp[2*4] ni[2] bgid[4] bgpt[2*4] ni*(index[2]) */
 		case 's':
 		case 'x':
-			printmesg(fmt="LLLPRPs", a, 0);
+			printmesg(fmt="LLLPRPs", a, 1);
 			m = 1+4+4+4+2*4+4*4+2*4+2;
 			if(*a == 'x')
 				m += 4+2*4;
@@ -2014,7 +2014,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* use public screen: 'S' id[4] chan[4] */
 		case 'S':
-			printmesg(fmt="Ll", a, 0);
+			printmesg(fmt="Ll", a, 1);
 			m = 1+4+4;
 			if(n < m)
 				error(Eshortdraw);
@@ -2032,7 +2032,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* top or bottom windows: 't' top[1] nw[2] n*id[4] */
 		case 't':
-			printmesg(fmt="bsL", a, 0);
+			printmesg(fmt="bsL", a, 1);
 			m = 1+1+2;
 			if(n < m)
 				error(Eshortdraw);
@@ -2073,7 +2073,7 @@ drawmesg(Client *client, void *av, int n)
 
 		/* visible: 'v' */
 		case 'v':
-			printmesg(fmt="", a, 0);
+			printmesg(fmt="", a, 1);
 			m = 1;
 			drawflush();
 			continue;
@@ -2082,7 +2082,7 @@ drawmesg(Client *client, void *av, int n)
 		/* write from compressed data: 'Y' id[4] R[4*4] data[x*1] */
 		case 'y':
 		case 'Y':
-			printmesg(fmt="LR", a, 0);
+			printmesg(fmt="LR", a, 1);
 		//	iprint("load %c\n", *a);
 			m = 1+4+4*4;
 			if(n < m)
