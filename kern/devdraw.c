@@ -10,6 +10,9 @@
 #include	<memlayer.h>
 #include	<cursor.h>
 #include	"screen.h"
+#include	"drawterm.h"
+
+#include	<stdio.h>
 
 enum
 {
@@ -22,6 +25,8 @@ enum
 	Qctl,
 	Qdata,
 	Qrefresh,
+	Qavctl,
+	Qavdata,
 };
 
 /*
@@ -161,6 +166,7 @@ static	int		waste;
 static	DScreen*	dscreen;
 extern	void		flushmemscreen(Rectangle);
 	void		drawmesg(Client*, void*, int);
+	void		drawvideo(Client*, void*, int);
 	void		drawuninstall(Client*, int);
 	void		drawfreedimage(DImage*);
 	Client*		drawclientofpath(ulong);
@@ -297,6 +303,15 @@ drawgen(Chan *c, char *n, Dirtab *d, int nd, int s, Dir *dp)
 	case 3:
 		q.path = path|Qrefresh;
 		devdir(c, q, "refresh", 0, eve, 0400, dp);
+		break;
+	/// TODO is s = 4 for avctl and s = 5 for avdata correct?
+	case 4:
+		q.path = path|Qavctl;
+		devdir(c, q, "avctl", 0, eve, 0600, dp);
+		break;
+	case 5:
+		q.path = path|Qavdata;
+		devdir(c, q, "avdata", 0, eve, 0600, dp);
 		break;
 	default:
 		return -1;
@@ -1320,6 +1335,14 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 		drawwakeall();
 		break;
 
+	case Qavdata:
+		drawvideo(cl, a, n);
+		drawwakeall();
+		break;
+
+	case Qavctl:
+		break;
+
 	default:
 		error(Ebadusefd);
 	}
@@ -1360,7 +1383,7 @@ printmesg(char *fmt, uchar *a, int plsprnt)
 	char *p, *q;
 	int s;
 
-	if(1|| plsprnt==0){
+	if(!drawdbg || plsprnt==0){
 		USED(s);
 		return;
 	}
@@ -1403,7 +1426,8 @@ printmesg(char *fmt, uchar *a, int plsprnt)
 	}
 	*q++ = '\n';
 	*q = 0;
-	iprint("%.*s", (int)(q-buf), buf);
+	/* iprint("%.*s", (int)(q-buf), buf); */
+	fprintf(stderr, "%.*s", (int)(q-buf), buf);
 }
 
 void
@@ -2077,6 +2101,14 @@ drawmesg(Client *client, void *av, int n)
 		}
 	}
 	poperror();
+}
+
+void
+drawvideo(Client *client, void *av, int n)
+{
+	/* print("Hello from devdraw driver video file!\n"); */
+	Memimage *dst;
+	dst = drawimage(client, 1);
 }
 
 Dev drawdevtab = {

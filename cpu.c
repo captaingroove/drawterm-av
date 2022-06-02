@@ -27,6 +27,7 @@ static int	aanto = 3600 * 24;
 static int	norcpu;
 static int	nokbd;
 static int	nogfx;
+int	drawdbg = 0;
 
 static char	*ealgs = "rc4_256 sha1";
 
@@ -245,6 +246,7 @@ usage(void)
 {
 	fprint(2, "usage: %s [-GBO] "
 		"[-h host] [-u user] [-a authserver] [-s secstore] "
+		"[-d]"
 		"[-e 'crypt hash'] [-k keypattern] "
 		"[-p] [-t timeout] "
 		"[-r root] "
@@ -280,6 +282,9 @@ cpumain(int argc, char **argv)
 		break;
 	case 'p':
 		aanfilter = 1;
+		break;
+	case 'd':
+		drawdbg = 1;
 		break;
 	case 't':
 		aanto = (int)strtol(EARGF(usage()), nil, 0);

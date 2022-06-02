@@ -5,6 +5,7 @@
 #include "user.h"
 #include "drawterm.h"
 
+
 char *argv0;
 
 void
@@ -54,7 +55,7 @@ main(int argc, char **argv)
 	if(bind("#U", "/root", MREPL) < 0)
 		panic("bind #U: %r");
 	bind("#A", "/dev", MAFTER);
-	bind("#V", "/dev", MAFTER);
+	/* bind("#V", "/dev", MAFTER); */
 	bind("#N", "/dev", MAFTER);
 	bind("#C", "/", MAFTER);
 
