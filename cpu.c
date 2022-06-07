@@ -11,6 +11,8 @@
 #include "args.h"
 #include "drawterm.h"
 
+#include <stdio.h>
+
 #define MaxStr 128
 
 static void	usage(void);
@@ -28,6 +30,7 @@ static int	norcpu;
 static int	nokbd;
 static int	nogfx;
 int	drawdbg = 0;
+FILE *dtlog;
 
 static char	*ealgs = "rc4_256 sha1";
 
@@ -128,6 +131,7 @@ rcpuexit(void)
 	char *s = getenv("rstatus");
 	if(s != nil)
 		exit(*s);
+	fclose(dtlog);
 }
 
 void
@@ -176,6 +180,8 @@ rcpu(char *host, char *cmd)
 	/* /env/rstatus is written by the remote script to communicate exit status */
 	remove("/env/rstatus");
 	atexit(rcpuexit);
+
+	dtlog = fopen("/tmp/drawterm.log", "w");
 
 	/* Begin serving the namespace */
 	exportfs(fd);

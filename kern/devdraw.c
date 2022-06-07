@@ -14,6 +14,7 @@
 
 #include	<stdio.h>
 
+
 enum
 {
 	Qtopdir		= 0,
@@ -1089,6 +1090,8 @@ drawopen(Chan *c, int omode)
 	c->flag |= COPEN;
 	c->offset = 0;
 	c->iounit = IOUNIT;
+	if (cl)
+		fprintf(dtlog, "drawopen client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
 	return c;
 }
 
@@ -1109,6 +1112,7 @@ drawclose(Chan *c)
 	}
 
 	cl = drawclient(c);
+	fprintf(dtlog, "drawclose client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
 	if(QID(c->qid) == Qctl)
 		cl->busy = 0;
 	if((c->flag&COPEN) && (decref(&cl->r)==0)){
@@ -1165,11 +1169,10 @@ drawread(Chan *c, void *a, long n, vlong off)
 		dunlock();
 		nexterror();
 	}
-	FILE *dtlog = fopen("/tmp/drawterm.log", "a");
 	switch(QID(c->qid)){
 	case Qctl:
 		/* fprintf(stderr, "reading from /dev/n/ctl\n"); */
-		fprintf(dtlog, "reading from /dev/n/ctl\n");
+		fprintf(dtlog, "reading from /dev/draw/n/ctl with client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
 		if(n < 12*12)
 			/* fprintf(stderr, "error: short read from /dev/n/ctl\n"); */
 			error(Eshortread);
@@ -1193,7 +1196,14 @@ drawread(Chan *c, void *a, long n, vlong off)
 			i->r.min.x, i->r.min.y, i->r.max.x, i->r.max.y,
 			i->clipr.min.x, i->clipr.min.y, i->clipr.max.x, i->clipr.max.y);
 		((char*)a)[n++] = ' ';
-		cl->infoid = -1;
+		////////////////////////////////////////////////////////////////////////////////////////
+		/// FIXME Commented out setting cl->infoid to -1 when the client reads the ctl info
+		/// In order to write to the current image id when streaming to /dev/draw/n/avdata,
+		/// the image id needs to be preserved. Setting the image id to -1 seems to make it
+		/// impossible to handle an av stream write without explicitely providing the image id
+		/// during streaming of the data.
+		/* cl->infoid = -1; */
+		////////////////////////////////////////////////////////////////////////////////////////
 		break;
 
 	case Qcolormap:
@@ -1259,7 +1269,6 @@ drawread(Chan *c, void *a, long n, vlong off)
 		n = p-(uchar*)a;
 		break;
 	}
-	fclose(dtlog);
 	dunlock();
 	poperror();
 	return n;
@@ -1296,14 +1305,15 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 		dunlock();
 		nexterror();
 	}
-	FILE *dtlog = fopen("/tmp/drawterm.log", "a");
 	switch(QID(c->qid)){
 	case Qctl:
 		/* fprintf(stderr, "writing to /dev/n/ctl\n"); */
-		fprintf(dtlog, "writing to /dev/n/ctl\n");
+		fprintf(dtlog, "writing to /dev/draw/n/ctl, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
 		if(n != 4)
 			error("unknown draw control request");
 		cl->infoid = BGLONG((uchar*)a);
+		fprintf(dtlog, "/dev/draw/n/ctl received image id from client %p with id %i, slot %i:\n%i\n", 
+				cl, cl->clientid, cl->slot, cl->infoid);
 		break;
 
 	case Qcolormap:
@@ -1342,15 +1352,20 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 		break;
 
 	case Qdata:
-		fprintf(dtlog, "writing to /dev/n/data\n");
+		fprintf(dtlog, "writing to /dev/draw/n/data, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
 		drawmesg(cl, a, n);
 		drawwakeall();
 		break;
 
 	case Qavdata:
-		fprintf(dtlog, "writing to /dev/n/avdata\n");
-		drawvideo(cl, a, n);
-		/* drawwakeall(); */
+		fprintf(dtlog, "writing to /dev/draw/n/avdata, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		/* drawvideo(cl, a, n); */
+		char str[128];
+		snprintf(str, 128, "%s", (char*)a);
+		str[n] = '\0';
+		fprintf(dtlog, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", 
+				cl, cl->clientid, cl->slot, cl->infoid, str);
+		drawwakeall();
 		break;
 
 	/* case Qavctl: */
@@ -1362,7 +1377,6 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 	default:
 		error(Ebadusefd);
 	}
-	fclose(dtlog);
 	dunlock();
 	poperror();
 	return n;
@@ -1396,6 +1410,7 @@ drawcoord(uchar *p, uchar *maxp, int oldx, int *newx)
 static void
 printmesg(char *fmt, uchar *a, int plsprnt)
 {
+
 	char buf[256];
 	char *p, *q;
 	int s;
@@ -1444,7 +1459,8 @@ printmesg(char *fmt, uchar *a, int plsprnt)
 	*q++ = '\n';
 	*q = 0;
 	/* iprint("%.*s", (int)(q-buf), buf); */
-	fprintf(stderr, "%.*s", (int)(q-buf), buf);
+	/* fprintf(stderr, "%.*s", (int)(q-buf), buf); */
+	fprintf(dtlog, "%.*s", (int)(q-buf), buf);
 }
 
 void
@@ -2130,50 +2146,62 @@ drawmesg(Client *client, void *av, int n)
 /* 		fprintf(stderr, "image is screen\n"); */
 /* } */
 
-/* void */
-/* filldimage(DImage *dimage, ulong val) */
-/* { */
-/* 	Memimage *dst; */
-/* 	dst = dimage->image; */
-/* 	if (!dst) { */
-/* 		fprintf(stderr, "dst image is NULL\n"); */
-/* 		return; */
-/* 	} */
-/* 	memfillcolor(dst, val); */
-/* 	drawflush(); */
-/* } */
+void
+filldimage(DImage *dimage, ulong val)
+{
+	Memimage *dst;
+	dst = dimage->image;
+	if (!dst) {
+		fprintf(stderr, "dst image is NULL\n");
+		return;
+	}
+	memfillcolor(dst, val);
+	drawflush();
+}
 
 void
 drawvideo(Client *client, void *av, int n)
 {
+	char str[128];
+	snprintf(str, 128, "%s", (char*)av);
+	str[n] = '\0';
+	fprintf(stderr, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", 
+			client, client->clientid, client->slot, client->infoid, str);
+	// TODO need to get Image from image id in client->infoid
+	/* int current_img_id = client->infoid; */
+	/* fprintf(stderr, "current image id: %d\n", current_img_id); */
+	/* DImage *current_img = client->dimage[current_img_id]; */
+	/* filldimage(current_img, 0xff000000); */
+
 	/*if(waserror()){*/
 	/*	nexterror();*/
 	/*}*/
-	fprintf(stderr, "client id: %i, slot: %i\n", client->clientid, client->slot);
-	CScreen *cscreen = client->cscreen;
-	if (!cscreen) {
-		fprintf(stderr, "cscreen is NULL\n");
-		return;
-	}
-	DScreen *dscreen = cscreen->dscreen;
-	if (!dscreen) {
-		fprintf(stderr, "dscreen is NULL\n");
-		return;
-	}
-	DImage *screen = dscreen->dimage;
-	if (!screen) {
-		fprintf(stderr, "screen is NULL\n");
-		return;
-	}
+
+	/* fprintf(stderr, "client id: %i, slot: %i\n", client->clientid, client->slot); */
+	/* CScreen *cscreen = client->cscreen; */
+	/* if (!cscreen) { */
+	/* 	fprintf(stderr, "cscreen is NULL\n"); */
+	/* 	return; */
+	/* } */
+	/* DScreen *dscreen = cscreen->dscreen; */
+	/* if (!dscreen) { */
+	/* 	fprintf(stderr, "dscreen is NULL\n"); */
+	/* 	return; */
+	/* } */
+	/* DImage *screen = dscreen->dimage; */
+	/* if (!screen) { */
+	/* 	fprintf(stderr, "screen is NULL\n"); */
+	/* 	return; */
+	/* } */
 	/* printdimage(screen, screen); */
-	for (int di = 0; di < NHASH; di++) {
-		DImage *cdi = client->dimage[di];
-		if (cdi) {
-			/* printdimage(cdi, screen); */
-			/* filldimage(cdi, 0xff000000 + (di << 16)); */
-			/* filldimage(cdi, ((di<<0x30) & 0xff000000) | ((di<<0x20) & 0x00ff0000) | ((di<<0x10) & 0x0000ff00)); */
-		}
-	}
+	/* for (int di = 0; di < NHASH; di++) { */
+	/* 	DImage *cdi = client->dimage[di]; */
+	/* 	if (cdi) { */
+	/* 		printdimage(cdi, screen); */
+	/* 		filldimage(cdi, 0xff000000 + (di << 16)); */
+	/* 		filldimage(cdi, ((di<<0x30) & 0xff000000) | ((di<<0x20) & 0x00ff0000) | ((di<<0x10) & 0x0000ff00)); */
+	/* 	} */
+	/* } */
 
 	/* DImage *dfill = dscreen->dfill; */
 	/* if (!dfill) { */

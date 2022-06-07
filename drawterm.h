@@ -9,3 +9,4 @@ extern void cpumain(int, char**);
 extern char *estrdup(char*);
 extern int aanclient(char*, int);
 extern int drawdbg;
+extern FILE *dtlog;
