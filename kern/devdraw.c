@@ -25,7 +25,7 @@ enum
 	Qctl,
 	Qdata,
 	Qrefresh,
-	Qavctl,
+	/* Qavctl, */
 	Qavdata,
 };
 
@@ -305,11 +305,11 @@ drawgen(Chan *c, char *n, Dirtab *d, int nd, int s, Dir *dp)
 		devdir(c, q, "refresh", 0, eve, 0400, dp);
 		break;
 	/// TODO is s = 4 for avctl and s = 5 for avdata correct?
+	/* case 4: */
+	/* 	q.path = path|Qavctl; */
+	/* 	devdir(c, q, "avctl", 0, eve, 0600, dp); */
+	/* 	break; */
 	case 4:
-		q.path = path|Qavctl;
-		devdir(c, q, "avctl", 0, eve, 0600, dp);
-		break;
-	case 5:
 		q.path = path|Qavdata;
 		devdir(c, q, "avdata", 0, eve, 0600, dp);
 		break;
@@ -1165,19 +1165,26 @@ drawread(Chan *c, void *a, long n, vlong off)
 		dunlock();
 		nexterror();
 	}
+	FILE *dtlog = fopen("/tmp/drawterm.log", "a");
 	switch(QID(c->qid)){
 	case Qctl:
+		/* fprintf(stderr, "reading from /dev/n/ctl\n"); */
+		fprintf(dtlog, "reading from /dev/n/ctl\n");
 		if(n < 12*12)
+			/* fprintf(stderr, "error: short read from /dev/n/ctl\n"); */
 			error(Eshortread);
 		if(cl->infoid < 0)
+			/* fprintf(stderr, "error: no draw image while reading from /dev/n/ctl\n"); */
 			error(Enodrawimage);
 		if(cl->infoid == 0){
 			i = screenimage;
 			if(i == nil)
+				/* fprintf(stderr, "error: no screen image while reading from /dev/n/ctl\n"); */
 				error(Enodrawimage);
 		}else{
 			di = drawlookup(cl, cl->infoid, 1);
 			if(di == nil)
+				/* fprintf(stderr, "error: draw lookup image failed while reading from /dev/n/ctl\n"); */
 				error(Enodrawimage);
 			i = di->image;
 		}
@@ -1252,6 +1259,7 @@ drawread(Chan *c, void *a, long n, vlong off)
 		n = p-(uchar*)a;
 		break;
 	}
+	fclose(dtlog);
 	dunlock();
 	poperror();
 	return n;
@@ -1288,8 +1296,11 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 		dunlock();
 		nexterror();
 	}
+	FILE *dtlog = fopen("/tmp/drawterm.log", "a");
 	switch(QID(c->qid)){
 	case Qctl:
+		/* fprintf(stderr, "writing to /dev/n/ctl\n"); */
+		fprintf(dtlog, "writing to /dev/n/ctl\n");
 		if(n != 4)
 			error("unknown draw control request");
 		cl->infoid = BGLONG((uchar*)a);
@@ -1331,21 +1342,27 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 		break;
 
 	case Qdata:
+		fprintf(dtlog, "writing to /dev/n/data\n");
 		drawmesg(cl, a, n);
 		drawwakeall();
 		break;
 
 	case Qavdata:
+		fprintf(dtlog, "writing to /dev/n/avdata\n");
 		drawvideo(cl, a, n);
-		drawwakeall();
+		/* drawwakeall(); */
 		break;
 
-	case Qavctl:
-		break;
+	/* case Qavctl: */
+	/* 	if(n != 4) */
+	/* 		error("unknown draw avcontrol request"); */
+	/* 	cl->infoid = BGLONG((uchar*)a); */
+	/* 	break; */
 
 	default:
 		error(Ebadusefd);
 	}
+	fclose(dtlog);
 	dunlock();
 	poperror();
 	return n;
@@ -2103,12 +2120,73 @@ drawmesg(Client *client, void *av, int n)
 	poperror();
 }
 
+/* void */
+/* printdimage(DImage *dimage, DImage *screen) */
+/* { */
+/* 	fprintf(stderr, "image id: %.8x, name: %s\n", dimage->id, dimage->name); */
+/* 	if (dimage->dscreen) */
+/* 		fprintf(stderr, "image is window\n"); */
+/* 	if (dimage == screen) */
+/* 		fprintf(stderr, "image is screen\n"); */
+/* } */
+
+/* void */
+/* filldimage(DImage *dimage, ulong val) */
+/* { */
+/* 	Memimage *dst; */
+/* 	dst = dimage->image; */
+/* 	if (!dst) { */
+/* 		fprintf(stderr, "dst image is NULL\n"); */
+/* 		return; */
+/* 	} */
+/* 	memfillcolor(dst, val); */
+/* 	drawflush(); */
+/* } */
+
 void
 drawvideo(Client *client, void *av, int n)
 {
-	/* print("Hello from devdraw driver video file!\n"); */
-	Memimage *dst;
-	dst = drawimage(client, 1);
+	/*if(waserror()){*/
+	/*	nexterror();*/
+	/*}*/
+	fprintf(stderr, "client id: %i, slot: %i\n", client->clientid, client->slot);
+	CScreen *cscreen = client->cscreen;
+	if (!cscreen) {
+		fprintf(stderr, "cscreen is NULL\n");
+		return;
+	}
+	DScreen *dscreen = cscreen->dscreen;
+	if (!dscreen) {
+		fprintf(stderr, "dscreen is NULL\n");
+		return;
+	}
+	DImage *screen = dscreen->dimage;
+	if (!screen) {
+		fprintf(stderr, "screen is NULL\n");
+		return;
+	}
+	/* printdimage(screen, screen); */
+	for (int di = 0; di < NHASH; di++) {
+		DImage *cdi = client->dimage[di];
+		if (cdi) {
+			/* printdimage(cdi, screen); */
+			/* filldimage(cdi, 0xff000000 + (di << 16)); */
+			/* filldimage(cdi, ((di<<0x30) & 0xff000000) | ((di<<0x20) & 0x00ff0000) | ((di<<0x10) & 0x0000ff00)); */
+		}
+	}
+
+	/* DImage *dfill = dscreen->dfill; */
+	/* if (!dfill) { */
+	/* 	fprintf(stderr, "dfill is NULL\n"); */
+	/* 	return; */
+	/* } */
+	/* Memscreen* screen = dscreen->screen; */
+	/* if (!screen) { */
+	/* 	fprintf(stderr, "screen is NULL\n"); */
+	/* 	return; */
+	/* } */
+	/* dst = drawimage(client, 1); */
+	/* poperror(); */
 }
 
 Dev drawdevtab = {

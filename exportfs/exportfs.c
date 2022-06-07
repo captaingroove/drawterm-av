@@ -9,6 +9,8 @@
 #define Extern
 #include "exportfs.h"
 
+#include <stdio.h>
+
 /* #define QIDPATH	((1LL<<48)-1) */
 #define QIDPATH	((((vlong)1)<<48)-1)
 vlong newqid = 0;
@@ -72,6 +74,12 @@ exportfs(int fd)
 	/*
 	 * Start serving file requests from the network
 	 */
+	FILE *plogfd = fopen("/tmp/9p.log", "w");
+	/// TODO Need to figure out how to print to a file with plan 9 fwrite() or similar ...
+	/// fcallfmt is already installed in kern/exportfs.c
+	/* fmtinstall('F', fcallfmt); */
+	if (plogfd == NULL)
+		fprintf(stderr, "opening 9P messages log file failed\n");
 	for(;;) {
 		r = getsbuf();
 		if(r == 0)
@@ -79,11 +87,13 @@ exportfs(int fd)
 			
 		DEBUG(DFD, "read9p...");
 		n = read9pmsg(netfd, r->buf, messagesize);
+		/* fwrite(r->buf, messagesize, 1, plogfd); */
 		if(n <= 0)
 			fatal(nil);
 
 		if(convM2S(r->buf, n, &r->work) == 0){
 			iprint("convM2S %d byte message\n", n);
+			/* fprint(2, "9P msg: %F", r->work); */
 			for(i=0; i<n; i++){
 				iprint(" %.2ux", r->buf[i]);
 				if(i%16 == 15)
@@ -98,6 +108,7 @@ if(0) iprint("<- %F\n", &r->work);
 		DEBUG(DFD, "%F\n", &r->work);
 		(fcalls[r->work.type])(r);
 	}
+	fclose(plogfd);
 }
 
 void
