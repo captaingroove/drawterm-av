@@ -1202,7 +1202,7 @@ drawread(Chan *c, void *a, long n, vlong off)
 		/// the image id needs to be preserved. Setting the image id to -1 seems to make it
 		/// impossible to handle an av stream write without explicitely providing the image id
 		/// during streaming of the data.
-		/* cl->infoid = -1; */
+		cl->infoid = -1;
 		////////////////////////////////////////////////////////////////////////////////////////
 		break;
 
