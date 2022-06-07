@@ -1090,8 +1090,10 @@ drawopen(Chan *c, int omode)
 	c->flag |= COPEN;
 	c->offset = 0;
 	c->iounit = IOUNIT;
-	if (cl)
+	if (cl) {
 		fprintf(dtlog, "drawopen client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		fflush(dtlog);
+	}
 	return c;
 }
 
@@ -1113,6 +1115,7 @@ drawclose(Chan *c)
 
 	cl = drawclient(c);
 	fprintf(dtlog, "drawclose client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
+	fflush(dtlog);
 	if(QID(c->qid) == Qctl)
 		cl->busy = 0;
 	if((c->flag&COPEN) && (decref(&cl->r)==0)){
@@ -1173,6 +1176,7 @@ drawread(Chan *c, void *a, long n, vlong off)
 	case Qctl:
 		/* fprintf(stderr, "reading from /dev/n/ctl\n"); */
 		fprintf(dtlog, "reading from /dev/draw/n/ctl with client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		fflush(dtlog);
 		if(n < 12*12)
 			/* fprintf(stderr, "error: short read from /dev/n/ctl\n"); */
 			error(Eshortread);
@@ -1309,11 +1313,13 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 	case Qctl:
 		/* fprintf(stderr, "writing to /dev/n/ctl\n"); */
 		fprintf(dtlog, "writing to /dev/draw/n/ctl, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		fflush(dtlog);
 		if(n != 4)
 			error("unknown draw control request");
 		cl->infoid = BGLONG((uchar*)a);
 		fprintf(dtlog, "/dev/draw/n/ctl received image id from client %p with id %i, slot %i:\n%i\n", 
 				cl, cl->clientid, cl->slot, cl->infoid);
+		fflush(dtlog);
 		break;
 
 	case Qcolormap:
@@ -1353,12 +1359,14 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 
 	case Qdata:
 		fprintf(dtlog, "writing to /dev/draw/n/data, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		fflush(dtlog);
 		drawmesg(cl, a, n);
 		drawwakeall();
 		break;
 
 	case Qavdata:
 		fprintf(dtlog, "writing to /dev/draw/n/avdata, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		fflush(dtlog);
 		drawvideo(cl, a, n);
 		/* char str[128]; */
 		/* snprintf(str, 128, "%s", (char*)a); */
@@ -1461,6 +1469,7 @@ printmesg(char *fmt, uchar *a, int plsprnt)
 	/* iprint("%.*s", (int)(q-buf), buf); */
 	/* fprintf(stderr, "%.*s", (int)(q-buf), buf); */
 	fprintf(dtlog, "%.*s", (int)(q-buf), buf);
+	fflush(dtlog);
 }
 
 void
@@ -2153,6 +2162,7 @@ filldimage(DImage *dimage, ulong val)
 	dst = dimage->image;
 	if (!dst) {
 		fprintf(dtlog, "dst image is NULL\n");
+		fflush(dtlog);
 		return;
 	}
 	memfillcolor(dst, val);
@@ -2167,6 +2177,7 @@ drawvideo(Client *client, void *av, int n)
 	str[n] = '\0';
 	fprintf(dtlog, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", 
 			client, client->clientid, client->slot, client->infoid, str);
+	fflush(dtlog);
 	// Get Image from image id in client->infoid
 	int current_img_id = client->infoid;
 	/* fprintf(stderr, "current image id: %d\n", current_img_id); */
