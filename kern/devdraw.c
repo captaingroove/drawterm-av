@@ -1359,12 +1359,12 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 
 	case Qavdata:
 		fprintf(dtlog, "writing to /dev/draw/n/avdata, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
-		/* drawvideo(cl, a, n); */
-		char str[128];
-		snprintf(str, 128, "%s", (char*)a);
-		str[n] = '\0';
-		fprintf(dtlog, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", 
-				cl, cl->clientid, cl->slot, cl->infoid, str);
+		drawvideo(cl, a, n);
+		/* char str[128]; */
+		/* snprintf(str, 128, "%s", (char*)a); */
+		/* str[n] = '\0'; */
+		/* fprintf(dtlog, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", */ 
+		/* 		cl, cl->clientid, cl->slot, cl->infoid, str); */
 		drawwakeall();
 		break;
 
@@ -2152,7 +2152,7 @@ filldimage(DImage *dimage, ulong val)
 	Memimage *dst;
 	dst = dimage->image;
 	if (!dst) {
-		fprintf(stderr, "dst image is NULL\n");
+		fprintf(dtlog, "dst image is NULL\n");
 		return;
 	}
 	memfillcolor(dst, val);
@@ -2165,13 +2165,13 @@ drawvideo(Client *client, void *av, int n)
 	char str[128];
 	snprintf(str, 128, "%s", (char*)av);
 	str[n] = '\0';
-	fprintf(stderr, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", 
+	fprintf(dtlog, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", 
 			client, client->clientid, client->slot, client->infoid, str);
-	// TODO need to get Image from image id in client->infoid
-	/* int current_img_id = client->infoid; */
+	// Get Image from image id in client->infoid
+	int current_img_id = client->infoid;
 	/* fprintf(stderr, "current image id: %d\n", current_img_id); */
-	/* DImage *current_img = client->dimage[current_img_id]; */
-	/* filldimage(current_img, 0xff000000); */
+	DImage *current_img = client->dimage[current_img_id];
+	filldimage(current_img, 0xff000000);
 
 	/*if(waserror()){*/
 	/*	nexterror();*/
