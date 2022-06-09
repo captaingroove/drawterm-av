@@ -12,6 +12,8 @@
 #include "drawterm.h"
 
 #include <stdio.h>
+#include <time.h>
+#include <sys/syscall.h>
 
 #define MaxStr 128
 
@@ -29,8 +31,27 @@ static int	aanto = 3600 * 24;
 static int	norcpu;
 static int	nokbd;
 static int	nogfx;
+
 int	drawdbg = 0;
 FILE *dtlog;
+static struct timespec curtime;
+
+void printloginfo(void)
+{
+    long            ms; // Milliseconds
+    time_t          s;  // Seconds
+	pid_t tid;
+	tid = syscall(SYS_gettid);
+	timespec_get(&curtime, TIME_UTC);
+    /* clock_gettime(CLOCK_REALTIME, &curtime); */
+    s  = curtime.tv_sec;
+    ms = round(curtime.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+    if (ms > 999) {
+        s++;
+        ms = 0;
+    }
+	fprintf(dtlog, "%"PRIdMAX".%03d %d: ", (intmax_t)s, ms, tid);
+}
 
 static char	*ealgs = "rc4_256 sha1";
 

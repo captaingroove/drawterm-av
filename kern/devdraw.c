@@ -1091,8 +1091,7 @@ drawopen(Chan *c, int omode)
 	c->offset = 0;
 	c->iounit = IOUNIT;
 	if (cl) {
-		fprintf(dtlog, "drawopen client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
-		fflush(dtlog);
+		LOG("drawopen client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
 	}
 	return c;
 }
@@ -1114,11 +1113,11 @@ drawclose(Chan *c)
 	}
 
 	cl = drawclient(c);
-	fprintf(dtlog, "drawclose client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
-	fflush(dtlog);
+	LOG("drawclose client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
 	if(QID(c->qid) == Qctl)
 		cl->busy = 0;
 	if((c->flag&COPEN) && (decref(&cl->r)==0)){
+		LOG("drawclose freeing client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
 		while(r = cl->refresh){	/* assign = */
 			cl->refresh = r->next;
 			free(r);
@@ -1175,8 +1174,7 @@ drawread(Chan *c, void *a, long n, vlong off)
 	switch(QID(c->qid)){
 	case Qctl:
 		/* fprintf(stderr, "reading from /dev/n/ctl\n"); */
-		fprintf(dtlog, "reading from /dev/draw/n/ctl with client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
-		fflush(dtlog);
+		LOG("reading from /dev/draw/n/ctl with client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
 		if(n < 12*12)
 			/* fprintf(stderr, "error: short read from /dev/n/ctl\n"); */
 			error(Eshortread);
@@ -1312,14 +1310,11 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 	switch(QID(c->qid)){
 	case Qctl:
 		/* fprintf(stderr, "writing to /dev/n/ctl\n"); */
-		fprintf(dtlog, "writing to /dev/draw/n/ctl, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
-		fflush(dtlog);
+		LOG("writing to /dev/draw/n/ctl, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
 		if(n != 4)
 			error("unknown draw control request");
 		cl->infoid = BGLONG((uchar*)a);
-		fprintf(dtlog, "/dev/draw/n/ctl received image id from client %p with id %i, slot %i:\n%i\n", 
-				cl, cl->clientid, cl->slot, cl->infoid);
-		fflush(dtlog);
+		LOG("/dev/draw/n/ctl received image id from client %p with id %i, slot %i:\n%i\n", cl, cl->clientid, cl->slot, cl->infoid);
 		break;
 
 	case Qcolormap:
@@ -1358,20 +1353,18 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 		break;
 
 	case Qdata:
-		fprintf(dtlog, "writing to /dev/draw/n/data, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
-		fflush(dtlog);
+		LOG("writing to /dev/draw/n/data, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
 		drawmesg(cl, a, n);
 		drawwakeall();
 		break;
 
 	case Qavdata:
-		fprintf(dtlog, "writing to /dev/draw/n/avdata, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
-		fflush(dtlog);
+		LOG("writing to /dev/draw/n/avdata, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
 		drawvideo(cl, a, n);
 		/* char str[128]; */
 		/* snprintf(str, 128, "%s", (char*)a); */
 		/* str[n] = '\0'; */
-		/* fprintf(dtlog, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", */ 
+		/* LOG("/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", */ 
 		/* 		cl, cl->clientid, cl->slot, cl->infoid, str); */
 		drawwakeall();
 		break;
@@ -1468,8 +1461,7 @@ printmesg(char *fmt, uchar *a, int plsprnt)
 	*q = 0;
 	/* iprint("%.*s", (int)(q-buf), buf); */
 	/* fprintf(stderr, "%.*s", (int)(q-buf), buf); */
-	fprintf(dtlog, "%.*s", (int)(q-buf), buf);
-	fflush(dtlog);
+	LOG("%.*s", (int)(q-buf), buf);
 }
 
 void
@@ -2161,13 +2153,33 @@ filldimage(DImage *dimage, ulong val)
 	Memimage *dst;
 	dst = dimage->image;
 	if (!dst) {
-		fprintf(dtlog, "dst image is NULL\n");
-		fflush(dtlog);
+		LOG("dst image is NULL\n");
 		return;
 	}
 	memfillcolor(dst, val);
-	drawflush();
+	char str[128];
+	sprint(str, "memimage->r: %R, memimage->clipr: %R", dst->r, dst->clipr);
+	LOG("%s\n", str);
+	/* drawflush(); */
 }
+
+/* void */
+/* drawdimage() */
+/* { */
+/* 	dst = drawimage(client, a+1); */
+/* 	dstid = BGLONG(a+1); */
+/* 	src = drawimage(client, a+5); */
+/* 	mask = drawimage(client, a+9); */
+/* 	drawrectangle(&r, a+13); */
+/* 	drawpoint(&p, a+29); */
+/* 	drawpoint(&q, a+37); */
+/* 	op = drawclientop(client); */
+/* 	memdraw(dst, r, src, p, mask, q, op); */
+/* 	dstflush(dstid, dst, r); */
+/* } */
+
+/* #include "../gameover.c" */
+#include "../screenshot2.c"
 
 void
 drawvideo(Client *client, void *av, int n)
@@ -2175,14 +2187,122 @@ drawvideo(Client *client, void *av, int n)
 	char str[128];
 	snprintf(str, 128, "%s", (char*)av);
 	str[n] = '\0';
-	fprintf(dtlog, "/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", 
-			client, client->clientid, client->slot, client->infoid, str);
-	fflush(dtlog);
+	LOG("/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", client, client->clientid, client->slot, client->infoid, str);
 	// Get Image from image id in client->infoid
-	int current_img_id = client->infoid;
+	/* int current_img_id = client->infoid; */
 	/* fprintf(stderr, "current image id: %d\n", current_img_id); */
-	DImage *current_img = client->dimage[current_img_id];
-	filldimage(current_img, 0xff000000);
+	int dstid = client->infoid;
+	DImage *dst_img = client->dimage[dstid];
+	Memimage *dst = dst_img->image;
+	Rectangle r = dst->r;
+	Rectangle clipr = dst->clipr;
+
+	/// Try to fill the destination image with red color
+	/* filldimage(current_img, 0xffffffff); */
+	/// FIXME no red colored rectangle visible ...
+	/// See also memdraw(2)
+	/// ... and implementation of the draw() message using memdraw() beginning with line 1622 
+	/// ... what about the repl flag, if the original image is loaded from a file without repl
+	/// ... use loadmemimage() or cloadmemimage() to load a pixmap into the current Image
+	/* memfillcolor(dst, 0xff000000); */
+	/* dstflush(dstid, dst, dst->r); */
+	/* filldimage(current_img, 0xff000000); */
+	/* dstflush(current_img_id, current_img->image, current_img->image->r); */
+
+	/// Try to draw a red line on the destination image
+	/* int op = drawclientop(client); */
+	/* Memimage *fg = allocmemimage(dst->r, dst->chan); */
+	/* memfillcolor(fg, 0xff000000); */
+	/* memimageline(dst, dst->r.min, dst->r.max, 0, 0, 5, fg, ZP, op); */
+	/* dstflush(dstid, dst, dst->r); */
+	/* freememimage(fg); */
+
+	/// Try to draw a filled rectangle to screen using code from drawmesg() above in mesgs 'y', 'Y'
+	///
+	/// Allocate a memimage for the image to display
+	Memimage *i = allocmemimage(dst->r, dst->chan);
+	if (i == 0) {
+		LOG("failed to allocate memimage\n");
+	}
+	int repl = 0;
+	if (repl)
+		i->flags |= Frepl;
+	i->clipr = dst->clipr;
+	if (!repl)
+		rectclip(&i->clipr, dst->r);
+	/// FIXME needed?
+	int memimgid = 100;
+	if (drawinstall(client, memimgid, i, 0) == 0){
+		freememimage(i);
+		LOG("failed to install image\n");
+	}
+	/// Load the image data into the allocated memimage
+	/* uchar *imgbuf; */
+	/* Rectangle rimgbuf = {0, 0, 924, 604}; */
+	/* int nimgbuf = 50228; */
+	/* Rectangle rimgbuf = {442, 152, 817, 341}; */
+	/* int nimgbuf = 283560; */
+	int nimgbuf = 283500;
+	int compressed = 0;
+	int bytes = memload(i, r, (uchar*)imgbuf, nimgbuf, compressed);
+	if (bytes < 0) {
+		LOG("memload failed\n");
+	} else {
+		LOG("memload consumed %d bytes\n", bytes);
+	}
+	sprint(str, "memimage->r: %R, memimage->clipr: %R", r, clipr);
+	LOG("%s\n", str);
+	/// FIXME needed?
+	dstflush(memimgid, i, r);
+	/// TODO do s.th. like (which follows the draw command from client side after all y mesgs:
+	/// d 00000005 00000006 00000001 [4 4 956 1004] [0 0] [0 0]
+	/// where img_id=5 is the destination and img_id=6 is the source
+	int op = drawclientop(client);
+	Point p = {442, 152};
+	Point q = {442, 152};
+	memdraw(dst, r, i, p, nil, q, op);
+	dstflush(dstid, dst, r);
+	/// v
+	drawflush();
+
+	/// Try to draw a filled rectangle to screen using code from drawmesg() above in mesg 'd'
+	/* int repl = 1; */
+	/* dst = screenimage; */
+	/* Memimage *i = allocmemimage(dst->r, dst->chan); */
+	/* if(i == 0) */
+	/* 	error(Edrawmem); */
+	/* if(repl) */
+	/* 	i->flags |= Frepl; */
+	/* i->clipr = dst->clipr; */
+	/* if(!repl) */
+	/* 	rectclip(&i->clipr, dst->r); */
+	/* if(drawinstall(client, dstid, i, 0) == 0){ */
+	/* 	freememimage(i); */
+	/* 	error(Edrawmem); */
+	/* } */
+	/* memfillcolor(i, 0xff000000); */
+	/* dstflush(screendimage->id, dst, dst->r); */
+
+	/// Try to draw a pixmap on the destination image
+	/* char *srcimgfn = "/home/jorg/devel/plan9/glenda/stuff/media/gameover.bit"; */
+	/* FILE *srcfstream = fopen(srcimgfn, "r"); */
+	/* /1* int srcfd = open(srcimgfn, "r"); *1/ */
+	/* int srcfd = fileno(srcfstream); */
+	/* if (srcfd < 0) { */
+	/* 	LOG("opening src image %s failed\n", srcimgfn); */
+	/* 	return; */
+	/* } */
+
+	/* Memimage *src = creadmemimage(srcfd);  /// drawterm: sysfile.c:843: starterror: Assertion `up->nerrlab == 0' failed. */ 
+	/* /1* close(srcfd); *1/ */
+	/* fclose(srcfstream); */
+	/* Memimage *mask = nil; */
+	/* int op = drawclientop(client); */
+	/* Point p = {0, 0}; */
+	/* Point q = {0, 0}; */
+	/* memdraw(dst, dst->r, src, p, mask, q, op); */
+	/* dstflush(dstid, dst, dst->r); */
+
 
 	/*if(waserror()){*/
 	/*	nexterror();*/

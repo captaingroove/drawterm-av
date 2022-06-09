@@ -10,3 +10,6 @@ extern char *estrdup(char*);
 extern int aanclient(char*, int);
 extern int drawdbg;
 extern FILE *dtlog;
+extern void printloginfo(void);
+
+#define LOG(...) printloginfo(); fprintf(dtlog, __VA_ARGS__); fflush(dtlog);
