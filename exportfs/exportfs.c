@@ -87,7 +87,10 @@ exportfs(int fd)
 			
 		DEBUG(DFD, "read9p...");
 		n = read9pmsg(netfd, r->buf, messagesize);
-		/* fwrite(r->buf, messagesize, 1, plogfd); */
+		char str[1024];
+		sprint(str, "%F\n", buf);
+		fprintf(plogfd, str);
+		fflush(plogfd);
 		if(n <= 0)
 			fatal(nil);
 
