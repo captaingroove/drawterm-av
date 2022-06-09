@@ -50,7 +50,7 @@ void printloginfo(void)
         s++;
         ms = 0;
     }
-	fprintf(dtlog, "%"PRIdMAX".%03d %d: ", (intmax_t)s, ms, tid);
+	fprintf(dtlog, "%"PRIdMAX".%03d %d│ ", (intmax_t)s, ms, tid);
 }
 
 static char	*ealgs = "rc4_256 sha1";

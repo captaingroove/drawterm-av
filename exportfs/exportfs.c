@@ -25,7 +25,6 @@ int	qfreecnt;
 int	ncollision;
 int	netfd;
 
-static FILE *plogfd;
 static char str[1024];
 
 int
@@ -56,7 +55,6 @@ exportfs(int fd)
 	strcpy(buf, "this is buf");
 	strcpy(ebuf, "this is ebuf");
 	DEBUG(DFD, "exportfs: started\n");
-	plogfd = fopen("/tmp/9p.log", "w");
 
 //	rfork(RFNOTEG);
 
@@ -74,17 +72,11 @@ exportfs(int fd)
 	initroot();
 
 	DEBUG(DFD, "exportfs: %s\n", buf);
-	fprintf(plogfd, "exportfs: %s\n", buf);
-	fflush(plogfd);
+	LOG("exportfs: %s", buf);
 
 	/*
 	 * Start serving file requests from the network
 	 */
-	/// TODO Need to figure out how to print to a file with plan 9 fwrite() or similar ...
-	/// fcallfmt is already installed in kern/exportfs.c
-	/* fmtinstall('F', fcallfmt); */
-	if (plogfd == NULL)
-		fprintf(stderr, "opening 9P messages log file failed\n");
 	for(;;) {
 		r = getsbuf();
 		if(r == 0)
@@ -92,19 +84,12 @@ exportfs(int fd)
 			
 		DEBUG(DFD, "read9p...");
 		n = read9pmsg(netfd, r->buf, messagesize);
-		/* char str[1024]; */
-		/* sprint(str, "%F\n", buf); */
-		/* fprintf(plogfd, str); */
-		/* fflush(plogfd); */
 		if(n <= 0)
 			fatal(nil);
 
 		if(convM2S(r->buf, n, &r->work) == 0){
 			iprint("convM2S %d byte message\n", n);
 			/* fprint(2, "9P msg: %F", r->work); */
-			/* sprint(str, "%F\n", r->work); */
-			/* fprintf(plogfd, str); */
-			/* fflush(plogfd); */
 			for(i=0; i<n; i++){
 				iprint(" %.2ux", r->buf[i]);
 				if(i%16 == 15)
@@ -117,12 +102,10 @@ exportfs(int fd)
 
 if(0) iprint("<- %F\n", &r->work);
 		DEBUG(DFD, "%F\n", &r->work);
-		sprint(str, "%F\n", &r->work);
-		fprintf(plogfd, str);
-		fflush(plogfd);
+		sprint(str, "9P: %F", &r->work);
+		LOG(str);
 		(fcalls[r->work.type])(r);
 	}
-	fclose(plogfd);
 }
 
 void
@@ -142,9 +125,8 @@ reply(Fcall *r, Fcall *t, char *err)
 
 if(0) iprint("-> %F\n", t);
 	DEBUG(DFD, "\t%F\n", t);
-	sprint(str, "%F\n", t);
-	fprintf(plogfd, str);
-	fflush(plogfd);
+	sprint(str, "9P: %F", t);
+	LOG(str);
 
 	data = malloc(messagesize);	/* not mallocz; no need to clear */
 	if(data == nil)

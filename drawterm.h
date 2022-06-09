@@ -12,4 +12,4 @@ extern int drawdbg;
 extern FILE *dtlog;
 extern void printloginfo(void);
 
-#define LOG(...) printloginfo(); fprintf(dtlog, __VA_ARGS__); fflush(dtlog);
+#define LOG(...) printloginfo(); fprintf(dtlog, __VA_ARGS__); fprintf(dtlog, "\n"); fflush(dtlog);

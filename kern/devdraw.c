@@ -1091,7 +1091,7 @@ drawopen(Chan *c, int omode)
 	c->offset = 0;
 	c->iounit = IOUNIT;
 	if (cl) {
-		LOG("drawopen client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		LOG("drawopen client %p, id %i, slot %i", cl, cl->clientid, cl->slot);
 	}
 	return c;
 }
@@ -1113,11 +1113,11 @@ drawclose(Chan *c)
 	}
 
 	cl = drawclient(c);
-	LOG("drawclose client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
+	LOG("drawclose client %p, id %i, slot %i", cl, cl->clientid, cl->slot);
 	if(QID(c->qid) == Qctl)
 		cl->busy = 0;
 	if((c->flag&COPEN) && (decref(&cl->r)==0)){
-		LOG("drawclose freeing client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		LOG("drawclose freeing client %p, id %i, slot %i", cl, cl->clientid, cl->slot);
 		while(r = cl->refresh){	/* assign = */
 			cl->refresh = r->next;
 			free(r);
@@ -1174,7 +1174,7 @@ drawread(Chan *c, void *a, long n, vlong off)
 	switch(QID(c->qid)){
 	case Qctl:
 		/* fprintf(stderr, "reading from /dev/n/ctl\n"); */
-		LOG("reading from /dev/draw/n/ctl with client %p, id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		LOG("reading from /dev/draw/n/ctl with client %p, id %i, slot %i", cl, cl->clientid, cl->slot);
 		if(n < 12*12)
 			/* fprintf(stderr, "error: short read from /dev/n/ctl\n"); */
 			error(Eshortread);
@@ -1310,11 +1310,11 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 	switch(QID(c->qid)){
 	case Qctl:
 		/* fprintf(stderr, "writing to /dev/n/ctl\n"); */
-		LOG("writing to /dev/draw/n/ctl, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		LOG("writing to /dev/draw/n/ctl, client %p with id %i, slot %i", cl, cl->clientid, cl->slot);
 		if(n != 4)
 			error("unknown draw control request");
 		cl->infoid = BGLONG((uchar*)a);
-		LOG("/dev/draw/n/ctl received image id from client %p with id %i, slot %i:\n%i\n", cl, cl->clientid, cl->slot, cl->infoid);
+		LOG("/dev/draw/n/ctl received image id from client %p with id %i, slot %i:\n%i", cl, cl->clientid, cl->slot, cl->infoid);
 		break;
 
 	case Qcolormap:
@@ -1353,13 +1353,13 @@ drawwrite(Chan *c, void *a, long n, vlong off)
 		break;
 
 	case Qdata:
-		LOG("writing to /dev/draw/n/data, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		LOG("writing to /dev/draw/n/data, client %p with id %i, slot %i", cl, cl->clientid, cl->slot);
 		drawmesg(cl, a, n);
 		drawwakeall();
 		break;
 
 	case Qavdata:
-		LOG("writing to /dev/draw/n/avdata, client %p with id %i, slot %i\n", cl, cl->clientid, cl->slot);
+		LOG("writing to /dev/draw/n/avdata, client %p with id %i, slot %i", cl, cl->clientid, cl->slot);
 		drawvideo(cl, a, n);
 		/* char str[128]; */
 		/* snprintf(str, 128, "%s", (char*)a); */
@@ -1461,7 +1461,7 @@ printmesg(char *fmt, uchar *a, int plsprnt)
 	*q = 0;
 	/* iprint("%.*s", (int)(q-buf), buf); */
 	/* fprintf(stderr, "%.*s", (int)(q-buf), buf); */
-	LOG("%.*s", (int)(q-buf), buf);
+	LOG("%.*s", (int)(q-buf-1), buf);
 }
 
 void
@@ -2153,13 +2153,13 @@ filldimage(DImage *dimage, ulong val)
 	Memimage *dst;
 	dst = dimage->image;
 	if (!dst) {
-		LOG("dst image is NULL\n");
+		LOG("dst image is NULL");
 		return;
 	}
 	memfillcolor(dst, val);
 	char str[128];
 	sprint(str, "memimage->r: %R, memimage->clipr: %R", dst->r, dst->clipr);
-	LOG("%s\n", str);
+	LOG("%s", str);
 	/* drawflush(); */
 }
 
@@ -2187,7 +2187,7 @@ drawvideo(Client *client, void *av, int n)
 	char str[128];
 	snprintf(str, 128, "%s", (char*)av);
 	str[n] = '\0';
-	LOG("/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s\n", client, client->clientid, client->slot, client->infoid, str);
+	LOG("/dev/draw/n/avdata received image id and data from client %p with id %i, slot %i:\n%i\n%s", client, client->clientid, client->slot, client->infoid, str);
 	// Get Image from image id in client->infoid
 	/* int current_img_id = client->infoid; */
 	/* fprintf(stderr, "current image id: %d\n", current_img_id); */
@@ -2222,7 +2222,7 @@ drawvideo(Client *client, void *av, int n)
 	/// Allocate a memimage for the image to display
 	Memimage *i = allocmemimage(dst->r, dst->chan);
 	if (i == 0) {
-		LOG("failed to allocate memimage\n");
+		LOG("failed to allocate memimage");
 	}
 	int repl = 0;
 	if (repl)
@@ -2234,7 +2234,7 @@ drawvideo(Client *client, void *av, int n)
 	int memimgid = 100;
 	if (drawinstall(client, memimgid, i, 0) == 0){
 		freememimage(i);
-		LOG("failed to install image\n");
+		LOG("failed to install image");
 	}
 	/// Load the image data into the allocated memimage
 	/* uchar *imgbuf; */
@@ -2246,12 +2246,12 @@ drawvideo(Client *client, void *av, int n)
 	int compressed = 0;
 	int bytes = memload(i, r, (uchar*)imgbuf, nimgbuf, compressed);
 	if (bytes < 0) {
-		LOG("memload failed\n");
+		LOG("memload failed");
 	} else {
-		LOG("memload consumed %d bytes\n", bytes);
+		LOG("memload consumed %d bytes", bytes);
 	}
 	sprint(str, "memimage->r: %R, memimage->clipr: %R", r, clipr);
-	LOG("%s\n", str);
+	LOG("%s", str);
 	/// FIXME needed?
 	dstflush(memimgid, i, r);
 	/// TODO do s.th. like (which follows the draw command from client side after all y mesgs:
