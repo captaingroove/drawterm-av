@@ -1198,14 +1198,14 @@ drawread(Chan *c, void *a, long n, vlong off)
 			i->r.min.x, i->r.min.y, i->r.max.x, i->r.max.y,
 			i->clipr.min.x, i->clipr.min.y, i->clipr.max.x, i->clipr.max.y);
 		((char*)a)[n++] = ' ';
-		////////////////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////////////////
 		/// FIXME Commented out setting cl->infoid to -1 when the client reads the ctl info
 		/// In order to write to the current image id when streaming to /dev/draw/n/avdata,
 		/// the image id needs to be preserved. Setting the image id to -1 seems to make it
 		/// impossible to handle an av stream write without explicitely providing the image id
 		/// during streaming of the data.
 		cl->infoid = -1;
-		////////////////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////////////////
 		break;
 
 	case Qcolormap:
@@ -2206,8 +2206,8 @@ drawvideo(Client *client, void *av, int n)
 	int srcid = client->infoid;
 	DImage *src_img = client->dimage[srcid];
 	Memimage *src = src_img->image;
-	Rectangle src_r = src->r;
-	Rectangle src_clipr = src->clipr;
+	/* Rectangle src_r = src->r; */
+	/* Rectangle src_clipr = src->clipr; */
 
 	LOG("client id: %i, slot: %i", client->clientid, client->slot);
 	CScreen *cscreen = client->cscreen;
@@ -2227,32 +2227,48 @@ drawvideo(Client *client, void *av, int n)
 	}
 	int dstid = screen->id;
 	LOG("screen dstid = %i", dstid);
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	/// FIXME we get screen image id = 4, which works, but should be 5 instead
+	/// to properly fit into the window frame borders
+	///
+	/// initdraw() on client side ...
+	/// img_id=4 has rect [0 0] [960 1008], which includes a 4 pixel border
+	/// img_id=4 is created with the A-mesg:
+	/// A 000013e1 00000004 00000001 0
+	///
+	/// readimage() on client side ...
+	/// img_id=5 has rect [4 4 956 1004]
+	/// img_id=5 is created with a b-mesg:
+	/// b 00000005 000013e1 1 68081828 0 [4 4 956 1004] [4 4 956 1004] ffffffff
+	///
+	/// img_id=6 is already the image read from screenshot1.bit with rect [442 152 817 341]
+	///
+	/// A workaround would be to add the [4, 4] pixels to the recangle of the dst image ...
+	/// but this relies on a fixed frame width.
+	///
+	/// We need to find the image id of the screen layer
+	/// b-msg has a branch for this special case in line 1543 with the last
+	/// parameter dscrn!=0, in all other cases the last parameter is set to 0:
+	/// 	if(drawinstall(client, dstid, l, dscrn) == 0){ ...
+	/// Can we identify this image on the server side?
+	///
+	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	DImage *dst_img = client->dimage[dstid];
 	Memimage *dst = dst_img->image;
 	Rectangle r = dst->r;
-	Rectangle clipr = dst->clipr;
+	/* Rectangle clipr = dst->clipr; */
 
-	/// Try to fill the destination image with red color
-	/* filldimage(current_img, 0xffffffff); */
-	/// FIXME no red colored rectangle visible ...
-	/// See also memdraw(2)
-	/// ... and implementation of the draw() message using memdraw() beginning with line 1622 
-	/// ... what about the repl flag, if the original image is loaded from a file without repl
-	/// ... use loadmemimage() or cloadmemimage() to load a pixmap into the current Image
-	/* memfillcolor(dst, 0xff000000); */
-	/* dstflush(dstid, dst, dst->r); */
-	/* filldimage(current_img, 0xff000000); */
-	/* dstflush(current_img_id, current_img->image, current_img->image->r); */
-
-	/// Try to draw a red line on the destination image
-	/* int op = drawclientop(client); */
-	/* Memimage *fg = allocmemimage(dst->r, dst->chan); */
-	/* memfillcolor(fg, 0xff000000); */
-	/* memimageline(dst, dst->r.min, dst->r.max, 0, 0, 5, fg, ZP, op); */
-	/* dstflush(dstid, dst, dst->r); */
-	/* freememimage(fg); */
-
+	LOG("memfillcolor() srcid: %d", srcid);
+	memfillcolor(src, 0xff000000);
+	int op = drawclientop(client);
+	sprint(str, "%R", r);
+	LOG("memdraw() dst: %p, r: %s, src: %p", dst, str, src);
+	memdraw(dst, r, src, ZP, nil, ZP, op);
+	LOG("dstflush() dstid: %d, dst: %p, r: %s", dstid, dst, str);
+	dstflush(dstid, dst, r);
+	/* dstflush(screendimage->id, dst, dst->r); */
+	drawflush();
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	/// Try to draw a filled rectangle to screen using code from drawmesg() above in mesgs 'y', 'Y'
@@ -2269,7 +2285,7 @@ drawvideo(Client *client, void *av, int n)
 	/* i->clipr = dst->clipr; */
 	/* if (!repl) */
 	/* 	rectclip(&i->clipr, dst->r); */
-	/* /// FIXME needed? */
+	/* /// needed? */
 	/* int memimgid = 100; */
 	/* if (drawinstall(client, memimgid, i, 0) == 0){ */
 	/* 	freememimage(i); */
@@ -2294,112 +2310,29 @@ drawvideo(Client *client, void *av, int n)
 	/* } */
 	/* sprint(str, "memimage->r: %R, memimage->clipr: %R", r, clipr); */
 	/* LOG("%s", str); */
-	/* /// FIXME needed? */
+	/* /// needed? */
 	/* dstflush(memimgid, i, r); */
-	/* /// TODO do s.th. like (which follows the draw command from client side after all y mesgs: */
+	/* /// do s.th. like (which follows the draw command from client side after all y mesgs: */
 	/* /// d 00000005 00000006 00000001 [4 4 956 1004] [0 0] [0 0] */
 	/* /// where img_id=5 is the destination and img_id=6 is the source */
 	/* int op = drawclientop(client); */
 	/* Point p = {442, 152}; */
 	/* Point q = {442, 152}; */
 	/* memdraw(dst, r, i, p, nil, q, op); */
-	/* /// FIXME dstid should be screen, not the current image ...?! */
+	/* /// dstid should be screen, not the current image ...?! */
 	/* dstflush(dstid, dst, r); */
 	/* /// v */
 	/* drawflush(); */
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
-
-	/// Try to draw a filled rectangle to screen using code from drawmesg() above in mesg 'd'
-	/* int repl = 1; */
-	/* dst = screenimage; */
-	/* Memimage *i = allocmemimage(dst->r, dst->chan); */
-	/* if(i == 0) */
-	/* 	error(Edrawmem); */
-	/* if(repl) */
-	/* 	i->flags |= Frepl; */
-	/* i->clipr = dst->clipr; */
-	/* if(!repl) */
-	/* 	rectclip(&i->clipr, dst->r); */
-	/* if(drawinstall(client, dstid, i, 0) == 0){ */
-	/* 	freememimage(i); */
-	/* 	error(Edrawmem); */
-	/* } */
-	LOG("memfillcolor() srcid: %d", srcid);
-	memfillcolor(src, 0xff000000);
-	int op = drawclientop(client);
-	sprint(str, "%R", r);
-	LOG("memdraw() dst: %p, r: %s, src: %p", dst, str, src);
-	memdraw(dst, r, src, ZP, nil, ZP, op);
-	LOG("dstflush() dstid: %d, dst: %p, r: %s", dstid, dst, str);
-	dstflush(dstid, dst, r);
-	/* dstflush(screendimage->id, dst, dst->r); */
-	drawflush();
-
-	/// Try to draw a pixmap on the destination image
-	/* char *srcimgfn = "/home/jorg/devel/plan9/glenda/stuff/media/gameover.bit"; */
-	/* FILE *srcfstream = fopen(srcimgfn, "r"); */
-	/* /1* int srcfd = open(srcimgfn, "r"); *1/ */
-	/* int srcfd = fileno(srcfstream); */
-	/* if (srcfd < 0) { */
-	/* 	LOG("opening src image %s failed\n", srcimgfn); */
-	/* 	return; */
-	/* } */
-
-	/* Memimage *src = creadmemimage(srcfd);  /// drawterm: sysfile.c:843: starterror: Assertion `up->nerrlab == 0' failed. */ 
-	/* /1* close(srcfd); *1/ */
-	/* fclose(srcfstream); */
-	/* Memimage *mask = nil; */
+	/// Try to draw a red line on the destination image
 	/* int op = drawclientop(client); */
-	/* Point p = {0, 0}; */
-	/* Point q = {0, 0}; */
-	/* memdraw(dst, dst->r, src, p, mask, q, op); */
+	/* Memimage *fg = allocmemimage(dst->r, dst->chan); */
+	/* memfillcolor(fg, 0xff000000); */
+	/* memimageline(dst, dst->r.min, dst->r.max, 0, 0, 5, fg, ZP, op); */
 	/* dstflush(dstid, dst, dst->r); */
-
-
-	/*if(waserror()){*/
-	/*	nexterror();*/
-	/*}*/
-
-	/* fprintf(stderr, "client id: %i, slot: %i\n", client->clientid, client->slot); */
-	/* CScreen *cscreen = client->cscreen; */
-	/* if (!cscreen) { */
-	/* 	fprintf(stderr, "cscreen is NULL\n"); */
-	/* 	return; */
-	/* } */
-	/* DScreen *dscreen = cscreen->dscreen; */
-	/* if (!dscreen) { */
-	/* 	fprintf(stderr, "dscreen is NULL\n"); */
-	/* 	return; */
-	/* } */
-	/* DImage *screen = dscreen->dimage; */
-	/* if (!screen) { */
-	/* 	fprintf(stderr, "screen is NULL\n"); */
-	/* 	return; */
-	/* } */
-	/* printdimage(screen, screen); */
-	/* for (int di = 0; di < NHASH; di++) { */
-	/* 	DImage *cdi = client->dimage[di]; */
-	/* 	if (cdi) { */
-	/* 		printdimage(cdi, screen); */
-	/* 		filldimage(cdi, 0xff000000 + (di << 16)); */
-	/* 		filldimage(cdi, ((di<<0x30) & 0xff000000) | ((di<<0x20) & 0x00ff0000) | ((di<<0x10) & 0x0000ff00)); */
-	/* 	} */
-	/* } */
-
-	/* DImage *dfill = dscreen->dfill; */
-	/* if (!dfill) { */
-	/* 	fprintf(stderr, "dfill is NULL\n"); */
-	/* 	return; */
-	/* } */
-	/* Memscreen* screen = dscreen->screen; */
-	/* if (!screen) { */
-	/* 	fprintf(stderr, "screen is NULL\n"); */
-	/* 	return; */
-	/* } */
-	/* dst = drawimage(client, 1); */
-	/* poperror(); */
+	/* freememimage(fg); */
 }
 
 Dev drawdevtab = {
