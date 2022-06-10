@@ -1484,6 +1484,8 @@ drawmesg(Client *client, void *av, int n)
 	CScreen *cs;
 	Refreshfn reffn;
 
+	char str[64];
+
 	a = av;
 	m = 0;
 	fmt = nil;
@@ -1558,6 +1560,8 @@ drawmesg(Client *client, void *av, int n)
 				}
 				continue;
 			}
+			sprint(str, "%R", r);
+			LOG("allocmemimage() r: %s, chan: %lu", str, chan);
 			i = allocmemimage(r, chan);
 			if(i == 0)
 				error(Edrawmem);
@@ -1570,6 +1574,7 @@ drawmesg(Client *client, void *av, int n)
 				freememimage(i);
 				error(Edrawmem);
 			}
+			LOG("memfillcolor() i: %p, value: %xd", i, chan, value);
 			memfillcolor(i, value);
 			continue;
 
@@ -1623,7 +1628,10 @@ drawmesg(Client *client, void *av, int n)
 			drawpoint(&p, a+29);
 			drawpoint(&q, a+37);
 			op = drawclientop(client);
+			sprint(str, "%R", r);
+			LOG("memdraw() dst: %p, r: %s, src: %p", dst, str, src);
 			memdraw(dst, r, src, p, mask, q, op);
+			LOG("dstflush() dstid: %d, dst: %p, r: %s", dstid, dst, str);
 			dstflush(dstid, dst, r);
 			continue;
 
@@ -2126,9 +2134,12 @@ drawmesg(Client *client, void *av, int n)
 			drawrectangle(&r, a+5);
 			if(!rectinrect(r, dst->r))
 				error(Ewriteoutside);
+			sprint(str, "%R", r);
+			LOG("memload() dst: %p, r: %s", dst, str);
 			y = memload(dst, r, a+m, n-m, *a=='Y');
 			if(y < 0)
 				error("bad writeimage call");
+			LOG("dstflush() dstid: %d, dst: %p, r: %s", dstid, dst, str);
 			dstflush(dstid, dst, r);
 			m += y;
 			continue;
@@ -2191,7 +2202,14 @@ drawvideo(Client *client, void *av, int n)
 	// Get Image from image id in client->infoid
 	/* int current_img_id = client->infoid; */
 	/* fprintf(stderr, "current image id: %d\n", current_img_id); */
-	int dstid = client->infoid;
+
+	int srcid = client->infoid;
+	DImage *src_img = client->dimage[srcid];
+	Memimage *src = src_img->image;
+	Rectangle src_r = src->r;
+	Rectangle src_clipr = src->clipr;
+
+	int dstid = 5;  // FIXME hardcode destination image for drawing
 	DImage *dst_img = client->dimage[dstid];
 	Memimage *dst = dst_img->image;
 	Rectangle r = dst->r;
@@ -2217,53 +2235,63 @@ drawvideo(Client *client, void *av, int n)
 	/* dstflush(dstid, dst, dst->r); */
 	/* freememimage(fg); */
 
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
 	/// Try to draw a filled rectangle to screen using code from drawmesg() above in mesgs 'y', 'Y'
 	///
 	/// Allocate a memimage for the image to display
-	Memimage *i = allocmemimage(dst->r, dst->chan);
-	if (i == 0) {
-		LOG("failed to allocate memimage");
-	}
-	int repl = 0;
-	if (repl)
-		i->flags |= Frepl;
-	i->clipr = dst->clipr;
-	if (!repl)
-		rectclip(&i->clipr, dst->r);
-	/// FIXME needed?
-	int memimgid = 100;
-	if (drawinstall(client, memimgid, i, 0) == 0){
-		freememimage(i);
-		LOG("failed to install image");
-	}
+
+	/* Memimage *i = allocmemimage(dst->r, dst->chan); */
+	/* if (i == 0) { */
+	/* 	LOG("failed to allocate memimage"); */
+	/* } */
+	/* int repl = 0; */
+	/* if (repl) */
+	/* 	i->flags |= Frepl; */
+	/* i->clipr = dst->clipr; */
+	/* if (!repl) */
+	/* 	rectclip(&i->clipr, dst->r); */
+	/* /// FIXME needed? */
+	/* int memimgid = 100; */
+	/* if (drawinstall(client, memimgid, i, 0) == 0){ */
+	/* 	freememimage(i); */
+	/* 	LOG("failed to install image"); */
+	/* } */
+
+	///
 	/// Load the image data into the allocated memimage
 	/* uchar *imgbuf; */
 	/* Rectangle rimgbuf = {0, 0, 924, 604}; */
 	/* int nimgbuf = 50228; */
 	/* Rectangle rimgbuf = {442, 152, 817, 341}; */
 	/* int nimgbuf = 283560; */
-	int nimgbuf = 283500;
-	int compressed = 0;
-	int bytes = memload(i, r, (uchar*)imgbuf, nimgbuf, compressed);
-	if (bytes < 0) {
-		LOG("memload failed");
-	} else {
-		LOG("memload consumed %d bytes", bytes);
-	}
-	sprint(str, "memimage->r: %R, memimage->clipr: %R", r, clipr);
-	LOG("%s", str);
-	/// FIXME needed?
-	dstflush(memimgid, i, r);
-	/// TODO do s.th. like (which follows the draw command from client side after all y mesgs:
-	/// d 00000005 00000006 00000001 [4 4 956 1004] [0 0] [0 0]
-	/// where img_id=5 is the destination and img_id=6 is the source
-	int op = drawclientop(client);
-	Point p = {442, 152};
-	Point q = {442, 152};
-	memdraw(dst, r, i, p, nil, q, op);
-	dstflush(dstid, dst, r);
-	/// v
-	drawflush();
+
+	/* int nimgbuf = 283500; */
+	/* int compressed = 0; */
+	/* int bytes = memload(i, r, (uchar*)imgbuf, nimgbuf, compressed); */
+	/* if (bytes < 0) { */
+	/* 	LOG("memload failed"); */
+	/* } else { */
+	/* 	LOG("memload consumed %d bytes", bytes); */
+	/* } */
+	/* sprint(str, "memimage->r: %R, memimage->clipr: %R", r, clipr); */
+	/* LOG("%s", str); */
+	/* /// FIXME needed? */
+	/* dstflush(memimgid, i, r); */
+	/* /// TODO do s.th. like (which follows the draw command from client side after all y mesgs: */
+	/* /// d 00000005 00000006 00000001 [4 4 956 1004] [0 0] [0 0] */
+	/* /// where img_id=5 is the destination and img_id=6 is the source */
+	/* int op = drawclientop(client); */
+	/* Point p = {442, 152}; */
+	/* Point q = {442, 152}; */
+	/* memdraw(dst, r, i, p, nil, q, op); */
+	/* /// FIXME dstid should be screen, not the current image ...?! */
+	/* dstflush(dstid, dst, r); */
+	/* /// v */
+	/* drawflush(); */
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
 
 	/// Try to draw a filled rectangle to screen using code from drawmesg() above in mesg 'd'
 	/* int repl = 1; */
@@ -2280,8 +2308,16 @@ drawvideo(Client *client, void *av, int n)
 	/* 	freememimage(i); */
 	/* 	error(Edrawmem); */
 	/* } */
-	/* memfillcolor(i, 0xff000000); */
+	LOG("memfillcolor() srcid: %d", srcid);
+	memfillcolor(src, 0xff000000);
+	int op = drawclientop(client);
+	sprint(str, "%R", r);
+	LOG("memdraw() dst: %p, r: %s, src: %p", dst, str, src);
+	memdraw(dst, r, src, ZP, nil, ZP, op);
+	LOG("dstflush() dstid: %d, dst: %p, r: %s", dstid, dst, str);
+	dstflush(dstid, dst, r);
 	/* dstflush(screendimage->id, dst, dst->r); */
+	drawflush();
 
 	/// Try to draw a pixmap on the destination image
 	/* char *srcimgfn = "/home/jorg/devel/plan9/glenda/stuff/media/gameover.bit"; */
