@@ -1561,7 +1561,7 @@ drawmesg(Client *client, void *av, int n)
 				continue;
 			}
 			sprint(str, "%R", r);
-			LOG("allocmemimage() r: %s, chan: %lu", str, chan);
+			LOG("allocmemimage() r: %s, chan: %u", str, chan);
 			i = allocmemimage(r, chan);
 			if(i == 0)
 				error(Edrawmem);
@@ -1574,7 +1574,7 @@ drawmesg(Client *client, void *av, int n)
 				freememimage(i);
 				error(Edrawmem);
 			}
-			LOG("memfillcolor() i: %p, value: %xd", i, chan, value);
+			LOG("memfillcolor() i: %p, chan: %i, value: %x", i, chan, value);
 			memfillcolor(i, value);
 			continue;
 
