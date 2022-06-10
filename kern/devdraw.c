@@ -2209,7 +2209,25 @@ drawvideo(Client *client, void *av, int n)
 	Rectangle src_r = src->r;
 	Rectangle src_clipr = src->clipr;
 
-	int dstid = 5;  // FIXME hardcode destination image for drawing
+	LOG("client id: %i, slot: %i", client->clientid, client->slot);
+	CScreen *cscreen = client->cscreen;
+	if (!cscreen) {
+		LOG("cscreen is NULL");
+		return;
+	}
+	DScreen *dscreen = cscreen->dscreen;
+	if (!dscreen) {
+		LOG("dscreen is NULL");
+		return;
+	}
+	DImage *screen = dscreen->dimage;
+	if (!screen) {
+		LOG("screen is NULL");
+		return;
+	}
+	int dstid = screen->id;
+	LOG("screen dstid = %i", dstid);
+
 	DImage *dst_img = client->dimage[dstid];
 	Memimage *dst = dst_img->image;
 	Rectangle r = dst->r;
