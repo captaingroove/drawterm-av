@@ -2227,6 +2227,7 @@ drawvideo(Client *client, void *av, int n)
 	}
 	int dstid = screen->id;
 	LOG("screen dstid = %i", dstid);
+	/* drawlookupdscreen(dscreen); */
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	/// FIXME we get screen image id = 4, which works, but should be 5 instead
 	/// to properly fit into the window frame borders
@@ -2251,16 +2252,33 @@ drawvideo(Client *client, void *av, int n)
 	/// parameter dscrn!=0, in all other cases the last parameter is set to 0:
 	/// 	if(drawinstall(client, dstid, l, dscrn) == 0){ ...
 	/// Can we identify this image on the server side?
+	/// This image seems to be the _screen (type Screen) thingy (top level
+	/// image/window of the window hierarchy)
+	/// What we currently draw on seems to be the screen (type Image) ...?!
 	///
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	DImage *dst_img = client->dimage[dstid];
 	Memimage *dst = dst_img->image;
 	Rectangle r = dst->r;
+	r.min.x += 4;
+	r.min.y += 4;
 	/* Rectangle clipr = dst->clipr; */
 
 	LOG("memfillcolor() srcid: %d", srcid);
-	memfillcolor(src, 0xff000000);
+	/* memfillcolor(src, 0xff000000); */
+
+	int nimgbuf = 283500;
+	int compressed = 0;
+	int bytes = memload(src, src->r, (uchar*)imgbuf, nimgbuf, compressed);
+	if (bytes < 0) {
+		LOG("memload failed");
+	} else {
+		LOG("memload consumed %d bytes", bytes);
+	}
+	sprint(str, "memimage->r: %R, memimage->clipr: %R", src->r, src->clipr);
+	LOG("%s", str);
+
 	int op = drawclientop(client);
 	sprint(str, "%R", r);
 	LOG("memdraw() dst: %p, r: %s, src: %p", dst, str, src);
