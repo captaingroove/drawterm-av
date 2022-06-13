@@ -2,6 +2,10 @@ ROOT=..
 include ../Make.config
 LIB=libkern.a
 
+SDL2_CFLAGS    := $(shell pkg-config --cflags sdl2)
+
+CFLAGS  += $(SDL2_CFLAGS)
+
 OFILES=\
 	alloc.$O\
 	allocb.$O\
@@ -11,6 +15,7 @@ OFILES=\
 	devaudio.$O\
 	devaudio-$(AUDIO).$O\
 	devav.$O\
+	ffmpeg.$O\
 	devcmd.$O\
 	devcons.$O\
 	devdraw.$O\

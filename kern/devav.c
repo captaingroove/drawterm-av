@@ -118,9 +118,9 @@ static	struct
 #define aqunlock(a) qunlock(&(a)->lk)
 
 static	char	Emode[]		= "illegal open mode";
-static Image *back, *dline;
-static Image *av_screen;
-static Screen *_av_screen;
+/* static Image *back, *dline; */
+/* static Image *av_screen; */
+/* static Screen *_av_screen; */
 
 
 static void
@@ -291,7 +291,7 @@ avwrite(Chan *c, void *vp, long n, vlong off)
 
 		/// Connect to the created window in avopen() (see also graphics(2): gengetwindow() and getwindow())
 		/// This results in a linker error: undefined reference to 'display'
-		Display *disp = display;
+		/* Display *disp = display; */
 		/* print("display pointer: %p", disp); */
 
 		/// Then do the same with some simple graphics ...

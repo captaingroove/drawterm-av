@@ -14,6 +14,10 @@ GUI=x11
 # LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm -lsndio
 LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm -lasound      # works also with pulse-audio plugin for alsa devices
 # LDADD=-L$(X11)/lib64 -L$(X11)/lib -lX11 -ggdb -lm -lpulse-simple
+SDL2_LDFLAGS   := $(shell pkg-config --libs sdl2)
+FFMPEG_LDFLAGS := -lavutil -lavformat -lavcodec -lswscale -lswresample -lz -lm
+LDADD += $(SDL2_LDFLAGS) $(FFMPEG_LDFLAGS)
+
 LDFLAGS=$(PTHREAD)
 TARG=drawterm
 # AUDIO=none

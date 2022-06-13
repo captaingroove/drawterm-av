@@ -1083,6 +1083,11 @@ drawopen(Chan *c, int omode)
 		cl = drawclient(c);
 		incref(&cl->r);
 		break;
+	case Qavdata:
+		cl = drawclient(c);
+		incref(&cl->r);
+		initffmpeg();
+		break;
 	}
 	dunlock();
 	poperror();
